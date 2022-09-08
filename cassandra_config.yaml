@@ -1,0 +1,80 @@
+---
+## Configure Cassandra instance installed
+## TODO:
+  # Check Cassandra is installed before configuring it
+  # Configure listen_address: private_ip & rpc_address: public_ip
+  # Refactor racks management
+  # Implement rack distribution
+  # Token range distribution imbalanced ==> implement allocate_tokens_for_keyspace
+  # Write a Readme
+
+- name: Playbook to configure Cassandra nodes
+  hosts: cassandra_node
+  become: yes
+  vars_files:
+    - vars/cassandra_install_config.yaml
+    - vars/linux_config.yaml
+
+  vars:
+    cassandra_configuration:
+      cluster_name: "{{ cassandra_cluster_name }}"
+      commitlog_sync: periodic
+      commitlog_sync_period_in_ms: 10000
+      commitlog_directory: /var/lib/cassandra/commitlog
+      saved_caches_directory: /var/lib/cassandra/saved_caches
+      partitioner: org.apache.cassandra.dht.Murmur3Partitioner
+      data_file_directories:
+        - /var/lib/cassandra/data
+      endpoint_snitch: GossipingPropertyFileSnitch
+      hints_directory: /var/lib/cassandra/hints
+      listen_address: "{{ ansible_default_ipv4.address }}"
+      num_tokens: 16
+      seed_provider:
+        - class_name: "org.apache.cassandra.locator.SimpleSeedProvider"
+          parameters:
+            - seeds: "{{ cassandra_seed_resolved }}"
+      start_native_transport: true
+    cassandra_regex_replacements:
+      - path: cassandra-rackdc.properties
+        line: 'dc=DC1'
+        regexp: '^dc='
+      - path: cassandra-rackdc.properties
+        line: 'rack=RACK_A'
+        regexp: '^rack='
+
+  post_tasks:
+    - name: 'create data directories under {{ cassandra_data_dir }}'
+      file:
+        path: '{{ cassandra_data_dir }}/{{ item }}/'
+        mode: 0775
+        owner: '{{ cassandra_user }}'
+        group: '{{ cassandra_group }}'
+        state: directory
+      with_items:
+        - data
+        - commitlog
+        - saved_caches
+        - hints
+
+    - name: Apply Cassandra Configuration
+      ansible.builtin.template:
+        src: "{{ cassandra_configuration_templ }}"
+        dest: "{{ cassandra_configuration_file }}"
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Apply JVM options
+      ansible.builtin.template:
+        src: "{{ jvm_configuration_templ }}"
+        dest: "{{ jvm_configuration_file }}"
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Apply Regular Expression Updates to the Configuration
+      ansible.builtin.lineinfile:
+        line: "{{ item.line }}"
+        path: "{{ cassandra_configuration_directory }}/{{ item.path }}"
+        regexp: "{{ item.regexp }}"
+      loop: "{{ cassandra_regex_replacements }}"

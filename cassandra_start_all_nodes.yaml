@@ -1,0 +1,16 @@
+---
+- name: Start Cassandra seed nodes
+  hosts: cassandra_seed
+  any_errors_fatal: true
+  become: yes
+  serial: 1
+  roles:
+    - start_cassandra
+
+- name: Start Cassandra non-seed nodes
+  hosts: cassandra_node
+  any_errors_fatal: true
+  become: yes
+  serial: 1
+  roles:
+    - start_cassandra

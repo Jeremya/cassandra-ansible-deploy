@@ -1,0 +1,39 @@
+---
+- name: Install Cassandra
+  hosts: cassandra_node
+  become: yes
+  vars_files:
+    - vars/cassandra_install_config.yaml
+
+  tasks:
+    - name: Install Python and Java OpenJDK 8
+      apt:
+        name: [ 'python-apt',
+                'openjdk-8-jdk',
+                'apt-transport-https' ]
+        state: present
+        update_cache: yes
+
+    - name: Add the Apache Apt Keys
+      ansible.builtin.apt_key:
+        url: https://downloads.apache.org/cassandra/KEYS
+      register: cassandra_remote_status
+      until: cassandra_remote_status is succeeded
+      delay: "{{ cassandra_task_delay }}"
+      retries: "{{ cassandra_task_retries }}"
+
+
+    - name: Configure the Apache Cassandra Apt Repository
+      ansible.builtin.apt_repository:
+        filename: /etc/apt/sources.list.d/cassandra.sources
+        repo: "deb https://debian.cassandra.apache.org {{ cassandra_repo_apache_release }} main"
+        state: present
+
+    - name: Install the Cassandra Package (Apt)
+      ansible.builtin.apt:
+        name: "{{ cassandra_package }}={{ cassandra_version }}"
+        cache_valid_time: 600
+        update-cache: yes
+        policy_rc_d: 101
+        force: yes
+        state: present

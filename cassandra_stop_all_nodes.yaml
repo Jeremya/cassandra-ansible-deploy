@@ -1,0 +1,10 @@
+---
+- name: Stop Cassandra nodes
+  hosts: cassandra_node
+  become: yes
+
+  tasks:
+    - name: Cassandra stop!!
+      ansible.builtin.service:
+        name: cassandra
+        state: stopped

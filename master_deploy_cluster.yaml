@@ -1,0 +1,16 @@
+---
+# Play all playbooks here
+# 1. cassandra_install
+# 2. configure_linux
+# 3. cassandra_config_node
+# 4. cassandra_start_all_nodes
+
+- import_playbook: cassandra_install.yaml
+
+- import_playbook: linux_config.yaml
+
+- import_playbook: cassandra_config.yaml
+
+- import_playbook: cassandra_start_all_nodes.yaml
+
+

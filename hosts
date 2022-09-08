@@ -1,0 +1,24 @@
+[all]
+node01 ansible_host=34.239.178.57
+node02 ansible_host=3.233.224.245
+node03 ansible_host=34.231.247.185
+node04 ansible_host=18.207.160.16
+node05 ansible_host=3.238.24.130
+node06 ansible_host=34.229.131.119
+
+[cassandra_node]
+node01
+node02
+node03
+node04
+node05
+node06
+
+[cassandra_seed]
+node01
+node03
+node05
+
+[all:vars]
+ansible_connection=ssh
+ansible_user=ubuntu

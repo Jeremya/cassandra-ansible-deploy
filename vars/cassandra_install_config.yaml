@@ -1,0 +1,25 @@
+---
+### Cassandra installation
+cassandra_package: cassandra
+cassandra_version: 3.11.13
+cassandra_task_retries: 5
+cassandra_task_delay: 10
+cassandra_repo_apache_release: 311x
+
+### Cassandra config
+cassandra_configuration_templ: "cassandra.yaml.template"
+cassandra_configuration_file: "/etc/cassandra/cassandra.yaml"
+jvm_configuration_templ: "jvm.options.template"
+jvm_configuration_file: "/etc/cassandra/jvm.options"
+cassandra_configuration_directory: "/etc/cassandra"
+cassandra_cluster_name: slingshotcluster
+cassandra_max_heapsize_gb: 4
+cassandra_min_newsize_gb: 1
+cpu_core_number: 8
+cassandra_seed_groupname: cassandra_seed
+cassandra_groupname: cassandra_node
+cassandra_network_interface: "{% if ansible_default_ipv4 is defined %}{{ ansible_default_ipv4.interface }}{% else %}eth0{% endif %}"
+cassandra_seed_resolved: '{% for host in groups[cassandra_seed_groupname] %}{{hostvars[host]["ansible_" + cassandra_network_interface]["ipv4"]["address"]}}{% if not loop.last %},{% endif %}{% endfor %}'
+# Pick 3 first nodes as seeds
+#cassandra_seed_resolved: '{{ hostvars[groups[cassandra_groupname][0]]["ansible_" + cassandra_network_interface]["ipv4"]["address"] }}, {{ hostvars[groups[cassandra_groupname][1]]["ansible_" + cassandra_network_interface]["ipv4"]["address"] }}, {{ hostvars[groups[cassandra_groupname][2]]["ansible_" + cassandra_network_interface]["ipv4"]["address"] }}'
+cassandra_data_dir: /var/lib/cassandra

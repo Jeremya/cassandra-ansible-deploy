@@ -1,0 +1,85 @@
+---
+- name: Prepare and configure Linux ec2 instance
+  hosts: cassandra_node
+  become: yes
+  vars_files:
+    - vars/linux_config.yaml
+
+  tasks:
+    - name: Remove swapfile from /etc/fstab
+      mount:
+        name: swap
+        fstype: swap
+        state: absent
+
+    - name: Disable swap
+      command: swapoff -a
+      when: ansible_swaptotal_mb > 0
+
+    # needed for the 'ip' command to populate 'ansible_default_ipv4'
+    - name: install iproute2
+      apt:
+        name: iproute2
+        state: present
+
+    - name: Ensure Swappiness is 1
+      sysctl:
+        name: vm.swappiness
+        value: "1"
+        sysctl_set: yes
+        reload: yes
+
+    # This is the maximum number of memory map areas a process may have, which is
+    # generally too low for cassandra (and in 3.11 it issues warnings). Some more info
+    # here: https://issues.apache.org/jira/browse/CASSANDRA-13008
+    - name: set vm.max_map_count=1048575
+      sysctl:
+        name: vm.max_map_count
+        value: 1048575
+        sysctl_set: true
+        reload: true
+
+    - name: set net.ipv4.tcp_keepalive_time=300
+      sysctl:
+        name: net.ipv4.tcp_keepalive_time
+        value: 300
+        sysctl_set: true
+        reload: true
+
+    - name: Install ntp
+      package:
+        name: "{{ ntp_packages }}"
+        state: present
+      retries: 3
+
+    - name: Ensure ntp service starts
+      service:
+        name: "{{ ntp_service }}"
+        enabled: yes
+        state: started
+
+    - name: Ensure disable-thp service file exists
+      copy:
+        src: disable-thp.service
+        dest: /etc/systemd/system/
+      register: thp
+
+    - name: Ensure service to disable THP exists
+      systemd:
+        name: disable-thp
+        daemon-reload: yes
+        state: started
+        enabled: yes
+      when: thp.changed == True
+
+    ### Check Cassandra group and user exist
+    - name: 'Ensure group {{ cassandra_group }} exists'
+      group:
+        name: '{{ cassandra_group }}'
+        state: present
+
+    - name: 'Ensure user {{ cassandra_user }} exists'
+      user:
+        name: '{{ cassandra_user }}'
+        state: present
+        createhome: false

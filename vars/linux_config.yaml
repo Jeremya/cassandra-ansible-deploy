@@ -1,0 +1,8 @@
+---
+ntp_packages:
+  - "ntp"
+  - "ntpdate"
+  - "ntp-doc"
+ntp_service: ntp
+cassandra_group: cassandra
+cassandra_user: cassandra
